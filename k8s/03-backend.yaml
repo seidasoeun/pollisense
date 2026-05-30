@@ -4,7 +4,7 @@ metadata:
   name: pollisense-backend
   namespace: pollisense
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: pollisense-backend

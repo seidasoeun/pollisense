@@ -78,7 +78,7 @@ public class PolliSenseController {
 
     @GetMapping("/device-health")
     public List<DeviceHealthResponse> deviceHealth() {
-        return healthSnapshots.findAll().stream().map(DeviceHealthResponse::from).toList();
+        return healthSnapshots.findTop100ByOrderByTimestampDesc().stream().map(DeviceHealthResponse::from).toList();
     }
 
     @GetMapping("/preferences")

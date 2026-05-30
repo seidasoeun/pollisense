@@ -7,6 +7,9 @@ export const dateRangeDays: Record<DateRangePreset, number> = {
 };
 
 export function getLatestRecordDate(records: { timestamp: string }[]) {
+  if (records.length === 0) {
+    return new Date();
+  }
   const latestTime = Math.max(...records.map((record) => new Date(record.timestamp).getTime()));
   return new Date(latestTime);
 }
@@ -19,7 +22,7 @@ export function getRangeStart(latestRecordDate: Date, dateRange: DateRangePreset
 }
 
 export function formatRangeLabel(start: Date, end: Date) {
-  const formatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+  const formatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const year = end.getUTCFullYear();
   return `${formatter.format(start)} - ${formatter.format(end)}, ${year}`;
 }
@@ -31,4 +34,3 @@ export function formatDateOption(isoDate: string) {
     day: 'numeric',
   }).format(new Date(`${isoDate}T00:00:00.000Z`));
 }
-
