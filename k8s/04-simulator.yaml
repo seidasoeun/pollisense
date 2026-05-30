@@ -19,6 +19,8 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            runAsUser: 10001
+            runAsGroup: 10001
             runAsNonRoot: true
           env:
             - name: BACKEND_URL

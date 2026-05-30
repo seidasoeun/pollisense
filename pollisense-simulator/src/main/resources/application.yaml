@@ -1,6 +1,8 @@
 spring:
   application:
     name: pollisense-simulator
+  main:
+    web-application-type: none
 
 pollisense:
   backend-url: ${BACKEND_URL:http://localhost:8080}

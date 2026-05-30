@@ -8,7 +8,7 @@ RUN ./mvnw -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-RUN groupadd --system pollisense && useradd --system --gid pollisense pollisense
+RUN groupadd --system --gid 10001 pollisense && useradd --system --uid 10001 --gid pollisense pollisense
 COPY --from=build /workspace/target/pollisense-simulator-0.0.1-SNAPSHOT.jar app.jar
-USER pollisense
+USER 10001:10001
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -19,6 +19,8 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            runAsUser: 101
+            runAsGroup: 101
             runAsNonRoot: true
           ports:
             - containerPort: 8080

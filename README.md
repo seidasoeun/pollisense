@@ -33,9 +33,14 @@ Useful checks:
 
 ```bash
 curl http://localhost:8080/actuator/health
+curl http://localhost:8080/actuator/health/readiness
+curl http://localhost:8080/actuator/health/liveness
 curl http://localhost:8080/api/stations
+curl http://localhost:8080/api/devices
 curl http://localhost:8080/api/records
+curl http://localhost:8080/api/device-health
 curl http://localhost:8080/api/alerts
+curl http://localhost:8080/api/summary
 ```
 
 The simulator sends a record every few seconds using the `X-Ingestion-Token` header. The backend compares it with the `INGESTION_TOKEN` environment variable.
@@ -113,3 +118,5 @@ The backend generates alerts when:
 ## NetworkPolicy Checks
 
 After applying `k8s/`, direct frontend or simulator access to PostgreSQL should be blocked. A quick check can be done by starting a temporary shell in the namespace with labels matching the frontend or simulator and trying to connect to `postgres:5432`; the connection should fail unless the pod is the backend.
+
+For a concise final demo checklist, including exact functional, persistence, scaling, and NetworkPolicy commands, see `docs/demo-evaluation.md`.
