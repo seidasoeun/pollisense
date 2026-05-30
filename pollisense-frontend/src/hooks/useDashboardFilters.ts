@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DashboardPreferences, ProcessedRecord, TargetGroup } from '../types';
 import { useDateRange } from './useDateRange';
 import { useFilteredRecords } from './useFilteredRecords';
@@ -9,6 +9,16 @@ export function useDashboardFilters(records: ProcessedRecord[], initialPreferenc
   const [selectedGroups, setSelectedGroups] = useState<TargetGroup[]>(preferences.targetGroups);
   const [selectedDate, setSelectedDate] = useState('all');
   const [minConfidence, setMinConfidence] = useState(0);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPreferences(initialPreferences);
+      setSelectedStation(initialPreferences.defaultStationId);
+      setSelectedGroups(initialPreferences.targetGroups);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [initialPreferences]);
+
   const dateRange = useDateRange(records, preferences.dateRange);
   const filtered = useFilteredRecords({
     records,
@@ -35,4 +45,3 @@ export function useDashboardFilters(records: ProcessedRecord[], initialPreferenc
     ...filtered,
   };
 }
-

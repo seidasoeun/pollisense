@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:pollisense-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+pollisense:
+  ingestion-token: test-token
+  cors-origins: http://localhost:5173

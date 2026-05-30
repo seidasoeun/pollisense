@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { polliSenseDataset } from './data/mockData';
+import { pollisenseApi } from './api/pollisenseApi';
 import { DashboardShell } from './components/layout/DashboardShell';
 import { OverviewPage } from './pages/OverviewPage';
 import { ActivityPage } from './pages/ActivityPage';
@@ -15,14 +16,56 @@ import { useDashboardFilters } from './hooks/useDashboardFilters';
 import { useDashboardSummary } from './hooks/useDashboardSummary';
 import { formatDateOption } from './utils/dateRange';
 import { getStationOperationalSummary } from './utils/stationLookup';
+import type { Alert, DashboardPreferences, DeviceStatus, FieldStation, ProcessedRecord } from './types';
 
 function App() {
   const [activePage, setActivePage] = useState<PageId>('overview');
   const [viewInterval, setViewInterval] = useState<TimeInterval>('daily');
-  const stations = polliSenseDataset.stations;
-  const devices = polliSenseDataset.devices;
-  const dashboardFilters = useDashboardFilters(polliSenseDataset.records, polliSenseDataset.preferences);
-  const alerts = polliSenseDataset.alerts.filter((alert) => alert.stationId === dashboardFilters.selectedStation);
+  const [stations, setStations] = useState<FieldStation[]>(polliSenseDataset.stations);
+  const [devices, setDevices] = useState<DeviceStatus[]>(polliSenseDataset.devices);
+  const [records, setRecords] = useState<ProcessedRecord[]>(polliSenseDataset.records);
+  const [allAlerts, setAllAlerts] = useState<Alert[]>(polliSenseDataset.alerts);
+  const [initialPreferences, setInitialPreferences] = useState<DashboardPreferences>(polliSenseDataset.preferences);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void Promise.all([
+        pollisenseApi.getStations(),
+        pollisenseApi.getDevices(),
+        pollisenseApi.getRecords(),
+        pollisenseApi.getAlerts(),
+      ]).then(([nextStations, nextDevices, nextRecords, nextAlerts]) => {
+        if (!active) {
+          return;
+        }
+        setStations(nextStations);
+        setDevices(nextDevices);
+        setRecords(nextRecords);
+        setAllAlerts(nextAlerts);
+      });
+    };
+
+    refresh();
+    void pollisenseApi.getPreferences().then((nextPreferences) => {
+      if (active) {
+        setInitialPreferences(nextPreferences);
+      }
+    });
+    const interval = window.setInterval(refresh, 8000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const dashboardFilters = useDashboardFilters(records, initialPreferences);
+  const savePreferences = (preferences: DashboardPreferences) => {
+    dashboardFilters.setPreferences(preferences);
+    void pollisenseApi.savePreferences(preferences).then(setInitialPreferences);
+  };
+  const alerts = allAlerts.filter((alert) => alert.stationId === dashboardFilters.selectedStation);
   const summary = useDashboardSummary(dashboardFilters.filteredRecords, devices);
   const stationStatus = getStationOperationalSummary(stations, devices, dashboardFilters.selectedStation);
   const dateFilterLabel = dashboardFilters.selectedDate === 'all' ? 'All days' : formatDateOption(dashboardFilters.selectedDate);
@@ -38,7 +81,7 @@ function App() {
     alerts,
     summary,
     preferences: dashboardFilters.preferences,
-    setPreferences: dashboardFilters.setPreferences,
+    setPreferences: savePreferences,
     viewInterval,
     setViewInterval,
     selectedDate: dashboardFilters.selectedDate,
@@ -54,7 +97,7 @@ function App() {
       activePage={activePage}
       setActivePage={setActivePage}
       preferences={dashboardFilters.preferences}
-      setPreferences={dashboardFilters.setPreferences}
+      setPreferences={savePreferences}
       selectedStationId={dashboardFilters.selectedStation}
       setSelectedStation={dashboardFilters.setSelectedStation}
       selectedGroups={dashboardFilters.selectedGroups}
@@ -83,4 +126,3 @@ function App() {
 }
 
 export default App;
-

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pollisense-backend
+  namespace: pollisense
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pollisense-backend
+  template:
+    metadata:
+      labels:
+        app: pollisense-backend
+    spec:
+      containers:
+        - name: backend
+          image: pollisense-backend:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/pollisense
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: INGESTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ingestion-secret
+                  key: INGESTION_TOKEN
+            - name: CORS_ORIGINS
+              value: http://localhost:8081,http://localhost:5173
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 25
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pollisense-backend
+  namespace: pollisense
+spec:
+  type: ClusterIP
+  selector:
+    app: pollisense-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

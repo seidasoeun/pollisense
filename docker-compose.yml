@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pollisense
+      POSTGRES_USER: pollisense
+      POSTGRES_PASSWORD: pollisense
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pollisense -d pollisense"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./pollisense-backend
+    networks:
+      default:
+        aliases:
+          - pollisense-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pollisense
+      SPRING_DATASOURCE_USERNAME: pollisense
+      SPRING_DATASOURCE_PASSWORD: pollisense
+      INGESTION_TOKEN: local-demo-token
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  simulator:
+    build: ./pollisense-simulator
+    environment:
+      BACKEND_URL: http://backend:8080
+      INGESTION_TOKEN: local-demo-token
+      SIMULATOR_INTERVAL_MS: 4000
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./pollisense-frontend
+      args:
+        VITE_API_BASE_URL: /api
+    depends_on:
+      - backend
+    ports:
+      - "8081:8080"
+
+volumes:
+  postgres-data:

@@ -14,36 +14,70 @@ const wait = <T,>(payload: T, delay = 160) =>
     window.setTimeout(() => resolve(payload), delay);
   });
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
+
+const fetchJson = async <T,>(path: string): Promise<T> => {
+  const response = await fetch(`${API_BASE_URL}${path}`);
+  if (!response.ok) {
+    throw new Error(`PolliSense API request failed: ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+};
+
+const withFallback = async <T,>(request: Promise<T>, fallback: T): Promise<T> => {
+  try {
+    return await request;
+  } catch (error) {
+    console.warn(error);
+    return wait(fallback, 80);
+  }
+};
+
+const filterRecords = (records: ProcessedRecord[], query: RecordsQuery) =>
+  records.filter((record) => {
+    const time = new Date(record.timestamp).getTime();
+    const afterStart = query.startDate ? time >= new Date(query.startDate).getTime() : true;
+    const beforeEnd = query.endDate ? time <= new Date(query.endDate).getTime() : true;
+    return (
+      (!query.stationId || record.stationId === query.stationId) &&
+      (!query.targetGroups?.length || query.targetGroups.includes(record.targetGroup)) &&
+      (!query.minConfidence || record.confidence >= query.minConfidence) &&
+      afterStart &&
+      beforeEnd
+    );
+  });
+
 export const pollisenseApi = {
   getStations(): Promise<FieldStation[]> {
-    return wait(polliSenseDataset.stations);
+    return withFallback(fetchJson<FieldStation[]>('/stations'), polliSenseDataset.stations);
   },
   getDevices(): Promise<DeviceStatus[]> {
-    return wait(polliSenseDataset.devices);
+    return withFallback(fetchJson<DeviceStatus[]>('/devices'), polliSenseDataset.devices);
   },
   getAlerts(): Promise<Alert[]> {
-    return wait(polliSenseDataset.alerts);
+    return withFallback(fetchJson<Alert[]>('/alerts'), polliSenseDataset.alerts);
   },
   getPreferences(): Promise<DashboardPreferences> {
-    return wait(polliSenseDataset.preferences);
+    return withFallback(fetchJson<DashboardPreferences>('/preferences'), polliSenseDataset.preferences);
   },
   savePreferences(preferences: DashboardPreferences): Promise<DashboardPreferences> {
     polliSenseDataset.preferences = preferences;
-    return wait(preferences, 220);
+    return withFallback(
+      fetch(`${API_BASE_URL}/preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(preferences),
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error(`PolliSense API request failed: ${response.status}`);
+        }
+        return response.json() as Promise<DashboardPreferences>;
+      }),
+      preferences,
+    );
   },
-  getRecords(query: RecordsQuery = {}): Promise<ProcessedRecord[]> {
-    const filtered = polliSenseDataset.records.filter((record) => {
-      const time = new Date(record.timestamp).getTime();
-      const afterStart = query.startDate ? time >= new Date(query.startDate).getTime() : true;
-      const beforeEnd = query.endDate ? time <= new Date(query.endDate).getTime() : true;
-      return (
-        (!query.stationId || record.stationId === query.stationId) &&
-        (!query.targetGroups?.length || query.targetGroups.includes(record.targetGroup)) &&
-        (!query.minConfidence || record.confidence >= query.minConfidence) &&
-        afterStart &&
-        beforeEnd
-      );
-    });
-    return wait(filtered);
+  async getRecords(query: RecordsQuery = {}): Promise<ProcessedRecord[]> {
+    const records = await withFallback(fetchJson<ProcessedRecord[]>('/records?limit=1000'), polliSenseDataset.records);
+    return filterRecords(records, query);
   },
 };

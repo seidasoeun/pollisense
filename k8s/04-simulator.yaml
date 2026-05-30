@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pollisense-simulator
+  namespace: pollisense
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pollisense-simulator
+  template:
+    metadata:
+      labels:
+        app: pollisense-simulator
+    spec:
+      containers:
+        - name: simulator
+          image: pollisense-simulator:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+          env:
+            - name: BACKEND_URL
+              value: http://pollisense-backend:8080
+            - name: SIMULATOR_INTERVAL_MS
+              value: "5000"
+            - name: INGESTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ingestion-secret
+                  key: INGESTION_TOKEN

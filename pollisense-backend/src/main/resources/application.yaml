@@ -1,3 +1,31 @@
 spring:
   application:
     name: pollisense-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pollisense}
+    username: ${SPRING_DATASOURCE_USERNAME:pollisense}
+    password: ${SPRING_DATASOURCE_PASSWORD:pollisense}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+pollisense:
+  ingestion-token: ${INGESTION_TOKEN:local-demo-token}
+  cors-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
