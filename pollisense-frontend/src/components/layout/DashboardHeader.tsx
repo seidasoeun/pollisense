@@ -1,3 +1,4 @@
+import pollisenseLogo from '../../assets/pollisense-logo.svg';
 import type { PageId } from '../../config/navigation';
 import { dashboardPages } from '../../config/navigation';
 import type { DashboardPreferences, FieldStation, ProcessedRecord } from '../../types';
@@ -44,6 +45,7 @@ export function DashboardHeader({
     <header className="border-b border-slate-200/80 bg-white">
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5 xl:flex-row xl:items-center xl:justify-between">
         <div>
+          <img className="mb-3 h-12 w-auto lg:hidden" src={pollisenseLogo} alt="PolliSense" />
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-xl font-semibold text-slate-950 sm:text-2xl">PolliSense Research Dashboard</h1>
             <span className="flex items-center gap-1.5 text-sm font-medium text-slate-600">

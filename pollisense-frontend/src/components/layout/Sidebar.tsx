@@ -1,4 +1,5 @@
-import { Bug, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import pollisenseLogo from '../../assets/pollisense-logo.svg';
 import type { PageId } from '../../config/navigation';
 import { dashboardPages } from '../../config/navigation';
 import type { FieldStation } from '../../types';
@@ -18,15 +19,7 @@ export function Sidebar({ activePage, onNavigate, selectedStation, stationNumber
   return (
     <aside className="hidden w-64 shrink-0 border-r border-emerald-950/60 bg-[#061719] text-white lg:flex lg:flex-col">
       <div className="border-b border-white/10 p-5">
-        <div className="flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-lime-300 to-emerald-700 shadow-lg shadow-emerald-950/40">
-            <Bug size={27} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">PolliSense</p>
-            <h1 className="text-xl font-semibold leading-tight">Dashboard Console</h1>
-          </div>
-        </div>
+        <img className="h-auto w-full rounded-md bg-white p-2 shadow-lg shadow-emerald-950/30" src={pollisenseLogo} alt="PolliSense" />
         <p className="mt-4 text-sm leading-5 text-slate-300">Processed field records with modular device health.</p>
       </div>
       <nav className="p-3 pb-2">
