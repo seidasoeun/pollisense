@@ -3,7 +3,7 @@ import { stationName } from './analytics';
 
 function csvEscape(value: string | number | boolean) {
   const text = String(value);
-  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function buildRecordsCsv(records: ProcessedRecord[], stations: FieldStation[]) {
@@ -46,4 +46,3 @@ export function downloadRecordsCsv(records: ProcessedRecord[], stations: FieldSt
   link.click();
   URL.revokeObjectURL(url);
 }
-

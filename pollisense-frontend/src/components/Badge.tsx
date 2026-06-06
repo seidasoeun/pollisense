@@ -1,7 +1,8 @@
 import type { AlertSeverity } from '../types';
+import type { ReactNode } from 'react';
 
 interface BadgeProps {
-  children: string;
+  children: ReactNode;
   tone?: AlertSeverity | 'success' | 'neutral';
 }
 

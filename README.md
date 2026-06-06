@@ -120,3 +120,10 @@ The backend generates alerts when:
 After applying `k8s/`, direct frontend or simulator access to PostgreSQL should be blocked. A quick check can be done by starting a temporary shell in the namespace with labels matching the frontend or simulator and trying to connect to `postgres:5432`; the connection should fail unless the pod is the backend.
 
 For a concise final demo checklist, including exact functional, persistence, scaling, and NetworkPolicy commands, see `docs/demo-evaluation.md`.
+
+## Deployment Guides
+
+Detailed deployment guides for the final course demo:
+
+- [Single-server Minikube deployment](docs/deploy-single-server.md): practical one-server/OpenNebula VM deployment with Minikube, SSH local forwarding, and SOCKS proxy access.
+- [Final OpenNebula deployment](docs/deploy-final-opennebula.md): intended final OpenNebula VM and Kubernetes deployment guide, including storage, security, image strategy, and demo sequence.

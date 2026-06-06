@@ -2,6 +2,14 @@ import type { Alert, ProcessedRecord } from '../../types';
 import { average } from '../../utils/analytics';
 import { Badge } from '../Badge';
 
+type ActionItem = {
+  label: string;
+  detail: string;
+  tone: 'critical' | 'warning' | 'info';
+};
+
+const isActionItem = (item: ActionItem | null): item is ActionItem => item !== null;
+
 export function ActionQueue({ records, alerts }: { records: ProcessedRecord[]; alerts: Alert[] }) {
   const flagged = records.filter((record) => record.flagged).length;
   const lowConfidence = records.filter((record) => record.confidence < 0.7).length;
@@ -36,7 +44,7 @@ export function ActionQueue({ records, alerts }: { records: ProcessedRecord[]; a
           : 'Confidence is mixed in this scope. Keep the export annotated and avoid over-reading group-level patterns.',
       tone: 'info' as const,
     },
-  ].filter(Boolean);
+  ].filter(isActionItem);
 
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
