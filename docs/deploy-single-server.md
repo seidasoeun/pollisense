@@ -49,9 +49,7 @@ Use this as the short path once the server exists:
 ```bash
 git clone https://github.com/seidasoeun/pollisense.git
 cd pollisense
-# If you are validating a branch before merge:
-# git fetch origin
-# git switch polish/deployment-readiness
+git switch master
 
 docker compose config
 minikube status || minikube start --driver=docker
