@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1 only when cleanup is intended. Deletes the namespace after confirmation.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

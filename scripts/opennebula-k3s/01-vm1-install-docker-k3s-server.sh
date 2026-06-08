@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1. Installs Docker and the k3s server/control-plane.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

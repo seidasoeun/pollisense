@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1. Collects demo evidence without dumping secret values.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

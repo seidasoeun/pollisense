@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1 after building images. Copies local image tar files to VM2.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,4 +37,9 @@ done
 log "Verifying PolliSense images on VM2"
 ssh "$SSH_USER@$VM2_IP" "sudo k3s ctr images list | grep pollisense"
 
-log "Image copy/import complete"
+cat <<'EOF'
+
+[INFO] Image copy/import complete.
+[INFO] On VM1, check scheduling with:
+  kubectl get pods -n pollisense -o wide
+EOF

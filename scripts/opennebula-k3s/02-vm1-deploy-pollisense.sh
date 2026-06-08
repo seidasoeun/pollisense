@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1. Builds local images, imports them into VM1 k3s, and applies k8s/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,6 +9,7 @@ NAMESPACE="${NAMESPACE:-pollisense}"
 REPO_URL="${REPO_URL:-https://github.com/seidasoeun/pollisense.git}"
 APP_DIR="${APP_DIR:-$HOME/pollisense}"
 CLEAN_NAMESPACE="${CLEAN_NAMESPACE:-false}"
+CONFIRM_CLEAN_NAMESPACE="${CONFIRM_CLEAN_NAMESPACE:-false}"
 
 log() { printf '\n[INFO] %s\n' "$*"; }
 warn() { printf '\n[WARN] %s\n' "$*" >&2; }
@@ -32,6 +34,7 @@ bash -n scripts/create-k8s-secrets.sh
 bash -n scripts/check-k8s-demo.sh
 
 if [[ "$CLEAN_NAMESPACE" == "true" ]]; then
+  [[ "$CONFIRM_CLEAN_NAMESPACE" == "true" ]] || die "Set CONFIRM_CLEAN_NAMESPACE=true to confirm deletion of namespace $NAMESPACE"
   warn "CLEAN_NAMESPACE=true, deleting namespace $NAMESPACE before redeploy"
   kubectl delete namespace "$NAMESPACE" --ignore-not-found
   for _ in {1..60}; do
@@ -75,4 +78,5 @@ cat <<EOF
 [INFO] Next commands:
   bash scripts/opennebula-k3s/04-vm1-copy-images-to-vm2.sh
   bash scripts/opennebula-k3s/05-vm1-setup-portforward-services.sh
+  bash scripts/opennebula-k3s/07-vm1-verify-deployment.sh
 EOF

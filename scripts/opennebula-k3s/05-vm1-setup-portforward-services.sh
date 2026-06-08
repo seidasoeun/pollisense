@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1. Creates systemd port-forward services bound to the VM1 private IP.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

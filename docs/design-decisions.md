@@ -1,33 +1,50 @@
-# PolliSense Design Decisions
+# Design Decisions
 
-These are short engineering notes for the deployment prototype.
+These notes describe the version 1 deployment choices. They are not production claims.
 
 ## Backend
 
-The backend is stateless. It keeps request handling, ingestion validation, alert generation, and dashboard APIs in the Java process, but persistent data lives in PostgreSQL. This lets the backend Deployment scale to more than one replica for the demo.
+- The backend is stateless.
+- It validates ingestion tokens, accepts records, generates alerts, and serves dashboard APIs.
+- Persistent state is stored in PostgreSQL, so backend pods can be restarted or scaled without losing records.
+- This is why the backend Deployment can be scaled during the demo.
 
 ## PostgreSQL
 
-PostgreSQL is stateful because it stores observations, device-health snapshots, alerts, stations, devices, and dashboard preferences. The prototype runs it as a single-replica Deployment because that is simple to demo and works with one PVC.
+- PostgreSQL is stateful.
+- It stores observations, device-health snapshots, alerts, stations, devices, and dashboard preferences.
+- In version 1 it runs as a single replica.
+- The single-replica choice keeps the demo simple and matches the one-PVC setup.
+- The limitation is that PostgreSQL itself is not highly available.
 
-For production, PostgreSQL should move to a StatefulSet or a managed database. It would also need backups, restore testing, monitoring, and a storage plan with clear durability guarantees.
+A production version would use a managed database or a Kubernetes `StatefulSet` with a tested storage design. It would also need backup/restore, monitoring, and regular recovery testing.
 
 ## PVC Storage
 
-The `postgres-data` PVC uses `ReadWriteOnce` because one PostgreSQL pod should mount the database volume at a time. The manifest leaves `storageClassName` unset so Kubernetes uses the cluster default StorageClass.
-
-On Minikube, the default StorageClass usually handles this automatically. On OpenNebula, the default StorageClass may map to the available datastore integration. If dynamic provisioning is not available, a manually created static PersistentVolume can satisfy the same claim.
+- The `postgres-data` PVC uses `ReadWriteOnce`.
+- `ReadWriteOnce` fits a single PostgreSQL pod because only one pod should mount the database volume for writing.
+- The manifest leaves `storageClassName` unset.
+- Kubernetes therefore uses the cluster default StorageClass.
+- On OpenNebula, this depends on the storage integration available in the lab. If dynamic provisioning is not available, a static PersistentVolume can satisfy the same claim.
 
 ## Secrets
 
-The committed Secret manifest contains demo values so the repository can be applied directly during a course demo. Real deployments should generate secrets per environment and should not commit secret values to Git. The helper script in `scripts/create-k8s-secrets.sh` supports that path.
+- The committed Kubernetes Secret manifest contains demo values for reproducibility.
+- Real deployments should generate secrets per environment.
+- A production version should use a real secret manager or platform secret integration instead of committing secret values.
 
 ## OpenNebula
 
-The baseline OpenNebula role is static provisioning. VMs are created from templates, Kubernetes is installed on them, and the PolliSense manifests run on that cluster.
+- In our version 1 deployment, OpenNebula provisioning is static.
+- VM1 is created as the k3s server/control-plane.
+- VM2 is created as the k3s worker/agent.
+- Kubernetes schedules the containers after the VMs already exist.
 
-Dynamic OpenNebula integration would mean provisioning or removing Kubernetes worker VMs based on demand. That is future work for this prototype. It would require a node autoscaling mechanism, VM templates, credentials, quotas, and a tested way for new VMs to join the cluster.
+Dynamic OpenNebula autoscaling is future work. It would require worker VM templates, credentials, quotas, a node join path, and safe node removal when load drops.
 
 ## NetworkPolicy
 
-The manifests define default-deny ingress and egress with explicit allowed paths between frontend, simulator, backend, PostgreSQL, and DNS. Actual enforcement depends on the Kubernetes CNI plugin. Some local Minikube setups do not enforce NetworkPolicy.
+- The manifests include default-deny ingress and egress policies.
+- Additional policies allow the expected paths: frontend to backend, simulator to backend, backend to PostgreSQL, and DNS egress.
+- NetworkPolicy enforcement depends on the Kubernetes CNI.
+- Some local clusters or default k3s setups may create the objects but not enforce them unless a compatible CNI is installed.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM2. Joins this VM as a k3s worker/agent.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

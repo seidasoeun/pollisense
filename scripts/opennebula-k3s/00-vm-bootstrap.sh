@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
+# Run on VM1 and VM2 before installing k3s.
+# Lab note: root/debug password login is enabled for isolated course VMs only.
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$SCRIPT_DIR/.env.local" ]] && source "$SCRIPT_DIR/.env.local"
 
 VM_HOSTNAME="${VM_HOSTNAME:-pollisense-vm}"
 DEBUG_PASS="${DEBUG_PASS:-debug}"
@@ -61,4 +66,10 @@ as_root apt-get install -y \
   ca-certificates curl wget git gnupg lsb-release iproute2 net-tools dnsutils \
   netcat-openbsd socat make openssl tar gzip jq
 
-log "Bootstrap complete. Docker, k3s, nginx, and PolliSense were not installed by this script."
+cat <<EOF
+
+[INFO] Bootstrap complete. Docker, k3s, nginx, and PolliSense were not installed by this script.
+[INFO] Next steps:
+  VM1: bash scripts/opennebula-k3s/01-vm1-install-docker-k3s-server.sh
+  VM2: K3S_TOKEN='<token-from-vm1>' bash scripts/opennebula-k3s/03-vm2-install-k3s-agent.sh
+EOF

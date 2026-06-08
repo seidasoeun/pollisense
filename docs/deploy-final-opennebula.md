@@ -2,7 +2,7 @@
 
 This guide describes the intended final deployment for PolliSense using OpenNebula-provisioned Linux VMs and Kubernetes.
 
-It is written for the final Fog and Cloud Computing course demo and report. Commands are generic where the exact OpenNebula course environment may differ.
+It is written for the final course demo and report. Commands are generic where the exact OpenNebula course environment may differ.
 
 ## High-Level Architecture
 

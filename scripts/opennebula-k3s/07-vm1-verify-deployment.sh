@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1. Verifies the deployed namespace, APIs, scaling, and persistence.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -69,3 +70,10 @@ if kubectl get networkpolicy -n "$NAMESPACE" >/dev/null 2>&1; then
 else
   warn "NetworkPolicy objects were not found"
 fi
+
+cat <<'EOF'
+
+[INFO] Verification complete.
+[INFO] For report evidence, run:
+  bash scripts/opennebula-k3s/08-vm1-collect-evidence.sh
+EOF

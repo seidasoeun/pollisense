@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Run on VM1 after starting the VMs. Restores k3s status and port-forwards.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
