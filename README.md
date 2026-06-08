@@ -190,6 +190,13 @@ Capture these during the final run:
 - Dashboard screenshot after records appear.
 - PostgreSQL pod deletion followed by records still being available.
 
+## Two-VM OpenNebula/k3s deployment
+
+- [Two-VM OpenNebula/k3s deployment](scripts/opennebula-k3s/README.md): version 1 VM operation scripts for VM1/VM2, local image copy, port-forward services, verification, and evidence collection.
+- [Two-VM deployment guide](docs/deploy-two-vm-opennebula-k3s.md): clean-VM setup guide for OpenNebula, k3s, SOCKS access, validation, and troubleshooting.
+- [Demo operator runbook](docs/demo-operator-runbook.md): practical demo-day command sequence.
+- [Q&A deployment notes](docs/q-and-a-deployment-notes.md): concise answers about design choices and version 1 limitations.
+
 ## Deployment Guides
 
 Detailed deployment guides for the final course demo:
