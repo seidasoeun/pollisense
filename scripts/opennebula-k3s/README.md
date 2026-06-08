@@ -59,7 +59,7 @@ After VM restart, run on VM1:
 bash scripts/opennebula-k3s/06-vm1-after-reboot.sh
 ```
 
-Cleanup is guarded and not recommend to use unless you intend to remove the namespace:
+Cleanup is guarded and not recommended unless you intend to remove the namespace:
 
 ```bash
 CONFIRM_DELETE=true bash scripts/opennebula-k3s/09-vm1-clean-pollisense.sh
