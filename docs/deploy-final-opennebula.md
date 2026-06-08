@@ -652,24 +652,6 @@ Take screenshots of:
 
 Only update the final report/proposal after these checks are captured. If NetworkPolicy is not enforced by the selected CNI, state that clearly and show the manifests as the intended policy.
 
-## Report Explanation Text
-
-You can adapt this text in the final report:
-
-OpenNebula is used as the IaaS layer. It provisions the Linux virtual machines that provide compute, memory, storage, and networking for the deployment.
-
-Kubernetes runs on top of the OpenNebula VMs and acts as the orchestration layer. It schedules the PolliSense containers, provides service discovery through Services, manages rollouts through Deployments, and attaches persistent storage through a PersistentVolumeClaim.
-
-Docker packages each PolliSense component as a container image. The frontend is a React/Vite dashboard served by nginx. The backend is a Java Spring Boot API. The simulator is a Java Spring Boot process that periodically sends processed monitoring records.
-
-PostgreSQL is the stateful component. It stores observations, alerts, preferences, and device-health data on a Kubernetes PVC so data can survive PostgreSQL pod recreation.
-
-The backend is stateless because persistent data is stored in PostgreSQL. This means the backend Deployment can be scaled horizontally by increasing the replica count.
-
-Kubernetes Secrets store the PostgreSQL credentials and ingestion token. NetworkPolicy defines the allowed communication paths between frontend, simulator, backend, PostgreSQL, and DNS. The application containers run as non-root users and disable privilege escalation.
-
-Dynamic OpenNebula node provisioning or autoscaling is future work. The baseline deployment uses statically provisioned OpenNebula VMs and Kubernetes workloads, which is sufficient for the course prototype and final demo.
-
 ## Troubleshooting
 
 ### Nodes Not Ready
