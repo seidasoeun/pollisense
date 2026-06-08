@@ -1,31 +1,16 @@
-# Two-VM OpenNebula k3s Deployment
+# Two-VM OpenNebula/k3s Deployment
 
-This is the main deployment guide for the version 1 PolliSense OpenNebula setup used in the course demo.
+This guide is the deployment path used for the final version of PolliSense. It assumes two fresh OpenNebula Ubuntu VMs. The deployment is script-based: each step points to a script under `scripts/opennebula-k3s/`. The scripts are included so the deployment can be repeated without manually retyping the commands used during development.
 
-## Topology
+## 1. What This Guide Deploys
 
-```text
-Windows browser
-  -> Firefox SOCKS5 127.0.0.1:8888
-  -> ssh -D tunnel to the OpenNebula/main server
-  -> VM1 private IP 172.16.100.2
-  -> VM1 port-forward services
-  -> Kubernetes Services in k3s
-```
+In version 1, OpenNebula provides two static VMs:
 
-```text
-VM1: 172.16.100.2
-  k3s server/control-plane
-  kubectl and kubeconfig
-  Docker image build
-  local image import into VM1 k3s containerd
-  systemd port-forward services for frontend and backend
-
-VM2: 172.16.100.3
-  k3s worker/agent
-  imported PolliSense images
-  scheduled application pods
-```
+- VM1: k3s server/control-plane.
+- VM2: k3s worker/agent.
+- PolliSense runs as Kubernetes workloads.
+- PostgreSQL stores data through a Kubernetes PVC.
+- Frontend and backend access use VM1 systemd port-forward services.
 
 Application flow:
 
@@ -34,219 +19,262 @@ pollisense-simulator -> pollisense-backend ingestion API -> PostgreSQL
                      -> backend read APIs -> pollisense-frontend dashboard
 ```
 
-Version 1 uses static OpenNebula VMs. Dynamic VM autoscaling is future work.
+Dynamic OpenNebula worker autoscaling is future work.
 
-## Before You Start
+## 2. Network Access Used in the Lab
 
-You need two Ubuntu VMs in OpenNebula. VM1 must reach VM2 over the private network. VM2 must reach VM1 on port `6443`.
-
-Clone the repository on both VMs or copy the scripts there:
-
-```bash
-git clone https://github.com/seidasoeun/pollisense.git
-cd pollisense
-cp scripts/opennebula-k3s/env.example scripts/opennebula-k3s/.env.local
-vi scripts/opennebula-k3s/.env.local
-```
-
-Set at least:
-
-```text
-VM1_IP=172.16.100.2
-VM2_IP=172.16.100.3
-SSH_USER=root
-```
-
-`.env.local` is VM-specific and should stay local.
-
-## VM1 Setup
-
-Run on VM1:
-
-```bash
-VM_HOSTNAME=pollisense-vm1 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
-bash scripts/opennebula-k3s/01-vm1-install-docker-k3s-server.sh
-```
-
-The bootstrap script sets the hostname, fixes `/etc/hosts`, selects a working DNS resolver, updates apt, and installs base tools. It also enables root/debug login for the isolated lab VMs; do not use that setting outside the lab.
-
-After k3s is installed, print the worker join token:
-
-```bash
-sudo cat /var/lib/rancher/k3s/server/node-token
-```
-
-Check VM1:
-
-```bash
-kubectl get nodes -o wide
-kubectl get storageclass
-```
-
-## VM2 Setup
-
-Run on VM2:
-
-```bash
-VM_HOSTNAME=pollisense-vm2 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
-K3S_TOKEN='<token-from-vm1>' bash scripts/opennebula-k3s/03-vm2-install-k3s-agent.sh
-```
-
-VM2 joins as a k3s agent. Normal `kubectl` work is done on VM1 because VM1 has the server kubeconfig.
-
-Back on VM1:
-
-```bash
-kubectl get nodes -o wide
-```
-
-Both nodes should be `Ready`.
-
-## Deploy PolliSense
-
-Run on VM1:
-
-```bash
-bash scripts/opennebula-k3s/02-vm1-deploy-pollisense.sh
-```
-
-The script:
-
-- clones or updates the repository under `APP_DIR`
-- validates Docker Compose and the Kubernetes manifests
-- builds backend, simulator, and frontend images
-- imports the images into VM1 k3s containerd
-- applies `k8s/`
-- waits for PostgreSQL, backend, simulator, and frontend rollouts
-
-For a clean redeploy, namespace deletion requires an explicit second confirmation:
-
-```bash
-CLEAN_NAMESPACE=true CONFIRM_CLEAN_NAMESPACE=true bash scripts/opennebula-k3s/02-vm1-deploy-pollisense.sh
-```
-
-Do not use this during the demo unless you intentionally want to remove the running namespace.
-
-## Copy and Import Images to VM2
-
-Version 1 does not use a registry. VM2 cannot pull `pollisense-backend:latest`, `pollisense-simulator:latest`, or `pollisense-frontend:latest` unless they are imported locally.
-
-Run on VM1:
-
-```bash
-bash scripts/opennebula-k3s/04-vm1-copy-images-to-vm2.sh
-```
-
-Then check where pods are scheduled:
-
-```bash
-kubectl get pods -n pollisense -o wide
-```
-
-## Access Through SOCKS
-
-From Windows, keep this tunnel open:
+From Windows, open a SOCKS tunnel to the main OpenNebula server:
 
 ```bash
 ssh -D 127.0.0.1:8888 -p 5033 <user>@<main-server>
 ```
 
-Configure Firefox to use SOCKS5 `127.0.0.1:8888`.
+From the main server, SSH into the private VM IPs:
 
-Run on VM1:
+```bash
+ssh root@172.16.100.2
+ssh root@<VM2_IP>
+```
+
+Firefox on Windows uses SOCKS5 `127.0.0.1:8888`.
+
+Use these URLs through SOCKS:
+
+```text
+Frontend: http://172.16.100.2:9999
+Backend:  http://172.16.100.2:8080/actuator/health
+```
+
+Do not open `localhost:9999` from Windows. With SOCKS, `localhost` is the Windows laptop, not VM1.
+
+## 3. Clone Repository on VM1
+
+On VM1:
+
+```bash
+ssh root@172.16.100.2
+git clone https://github.com/seidasoeun/pollisense.git
+cd pollisense
+```
+
+If the repository already exists:
+
+```bash
+cd ~/pollisense
+git pull origin master
+```
+
+## 4. Prepare Environment File
+
+On each VM, copy the example file and edit it:
+
+```bash
+cp scripts/opennebula-k3s/env.example scripts/opennebula-k3s/.env.local
+nano scripts/opennebula-k3s/.env.local
+```
+
+Useful fields:
+
+- `VM1_IP`: VM1 private IP. In our lab run this was `172.16.100.2`.
+- `VM2_IP`: VM2 private IP.
+- `VM1_HOSTNAME`: hostname for VM1, usually `pollisense-vm1`.
+- `VM2_HOSTNAME`: hostname for VM2, usually `pollisense-vm2`.
+- `SSH_USER`: SSH user used by VM1 when copying images to VM2.
+- `NAMESPACE`: Kubernetes namespace, normally `pollisense`.
+- `FRONTEND_PORT`: VM1 frontend port, normally `9999`.
+- `BACKEND_PORT`: VM1 backend port, normally `8080`.
+
+`.env.local` is VM-specific and should not be committed.
+
+## 5. VM1 Setup from a Fresh VM
+
+Run these on VM1:
+
+```bash
+sudo VM_HOSTNAME=pollisense-vm1 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
+bash scripts/opennebula-k3s/01-vm1-install-docker-k3s-server.sh
+bash scripts/opennebula-k3s/02-vm1-deploy-pollisense.sh
+```
+
+What the scripts do:
+
+- `00-vm-bootstrap.sh`: fixes hostname and `/etc/hosts`, selects a working DNS resolver, updates apt, and installs basic tools.
+- `01-vm1-install-docker-k3s-server.sh`: installs Docker and the k3s server/control-plane.
+- `02-vm1-deploy-pollisense.sh`: validates the local config, builds images, imports them into VM1 k3s containerd, and applies the Kubernetes manifests.
+
+## 6. Get VM1 k3s Token
+
+On VM1:
+
+```bash
+sudo cat /var/lib/rancher/k3s/server/node-token
+```
+
+Save the token. VM2 needs it to join the k3s cluster.
+
+## 7. VM2 Setup from a Fresh VM
+
+Run these on VM2:
+
+```bash
+ssh root@<VM2_IP>
+git clone https://github.com/seidasoeun/pollisense.git
+cd pollisense
+cp scripts/opennebula-k3s/env.example scripts/opennebula-k3s/.env.local
+nano scripts/opennebula-k3s/.env.local
+sudo VM_HOSTNAME=pollisense-vm2 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
+K3S_TOKEN='<token-from-vm1>' bash scripts/opennebula-k3s/03-vm2-install-k3s-agent.sh
+```
+
+`03-vm2-install-k3s-agent.sh` joins VM2 to VM1 at `https://VM1_IP:6443`.
+
+Normal `kubectl` work is done from VM1 because VM1 has the k3s server kubeconfig. VM2 does not normally use `kubectl`.
+
+Back on VM1, check the nodes:
+
+```bash
+kubectl get nodes -o wide
+```
+
+Expected: VM1 and VM2 are `Ready`.
+
+## 8. Copy Images from VM1 to VM2
+
+Back on VM1:
+
+```bash
+bash scripts/opennebula-k3s/04-vm1-copy-images-to-vm2.sh
+```
+
+Version 1 does not use a registry. The Kubernetes manifests use local image names, so each k3s node must have the PolliSense images in containerd. The script saves the images on VM1, copies the tar files to VM2, and imports them there.
+
+A shared registry would be a future improvement.
+
+## 9. Enable Frontend and Backend Access After Reboot
+
+On VM1:
 
 ```bash
 bash scripts/opennebula-k3s/05-vm1-setup-portforward-services.sh
 ```
 
-Open:
+This creates systemd services on VM1:
 
-```text
-http://172.16.100.2:9999
-http://172.16.100.2:8080/actuator/health
-```
+- Frontend port-forward: `172.16.100.2:9999`.
+- Backend port-forward: `172.16.100.2:8080`.
 
-Do not use `localhost:9999` from Windows. In that context, `localhost` is the Windows laptop, not VM1.
+The services restart after reboot so the dashboard and health endpoint are reachable again after the VMs start.
 
-## After Reboot
+## 10. Verify Deployment
 
-Start VM1 first, then VM2. Run on VM1:
-
-```bash
-bash scripts/opennebula-k3s/06-vm1-after-reboot.sh
-```
-
-The script starts k3s, waits for the PolliSense rollouts, and restarts the systemd port-forward services. If the services are not installed, it starts temporary `nohup` port-forwards bound to the VM1 private IP.
-
-## Verify the Deployment
-
-Run on VM1:
+On VM1:
 
 ```bash
 bash scripts/opennebula-k3s/07-vm1-verify-deployment.sh
 ```
 
-The verification script checks nodes, pods, services, PVCs, secrets, NetworkPolicies, simulator logs, backend APIs, backend scaling, and PostgreSQL persistence after a pod restart.
+Manual checks:
 
-For the demo sequence, use [demo-runbook.md](demo-runbook.md).
+```bash
+kubectl get nodes -o wide
+kubectl get pods -n pollisense -o wide
+kubectl get pvc -n pollisense
+curl http://172.16.100.2:8080/actuator/health
+```
 
-## Collect Evidence
+The verification script also checks backend APIs, simulator logs, backend scaling, and PostgreSQL persistence after a pod restart.
 
-Run on VM1:
+NetworkPolicy objects are applied, but enforcement depends on the Kubernetes CNI.
+
+## 11. Browser Check from Windows
+
+With Firefox SOCKS configured, open:
+
+```text
+http://172.16.100.2:9999
+```
+
+Expected:
+
+- The dashboard loads.
+- Records appear.
+- Alerts appear.
+- Refresh still works.
+
+## 12. After Shutdown or Startup
+
+Start VM1 first, then VM2. k3s services should start automatically.
+
+On VM1:
+
+```bash
+bash scripts/opennebula-k3s/06-vm1-after-reboot.sh
+```
+
+Or check the port-forward services:
+
+```bash
+sudo systemctl status pollisense-frontend-portforward --no-pager
+sudo systemctl status pollisense-backend-portforward --no-pager
+```
+
+## 13. Collect Evidence
+
+On VM1:
 
 ```bash
 bash scripts/opennebula-k3s/08-vm1-collect-evidence.sh
 ```
 
-Evidence is saved under:
+The script saves command outputs under:
 
 ```text
-~/pollisense-evidence/YYYYMMDD-HHMMSS/
+~/pollisense-evidence/<timestamp>/
 ```
 
-The script saves Kubernetes status, simulator logs, backend API responses, systemd port-forward status, and listening ports. It does not dump secret values.
+It saves Kubernetes status, simulator logs, backend API responses, systemd service status, and listening ports. It does not dump secret values.
 
-## Cleanup
+## 14. Cleanup
 
-Delete only the PolliSense namespace:
+On VM1:
 
 ```bash
 CONFIRM_DELETE=true bash scripts/opennebula-k3s/09-vm1-clean-pollisense.sh
 ```
 
-Full k3s removal is for disposable VMs only:
+By default this deletes only the `pollisense` namespace.
+
+Full k3s reset requires extra confirmation and should only be used on disposable VMs:
 
 ```bash
 CONFIRM_DELETE=true FULL_RESET=true CONFIRM_FULL_RESET=true bash scripts/opennebula-k3s/09-vm1-clean-pollisense.sh
 ```
 
-Do not run cleanup during the demo unless you intend to remove the deployment.
+## 15. Troubleshooting
 
-## Troubleshooting
+DNS failure during apt update:
 
-DNS fails during apt or downloads:
-
-```bash
-VM_HOSTNAME=pollisense-vm1 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
-```
-
-The bootstrap script keeps the working DNS selection logic and tests several resolvers against `archive.ubuntu.com`.
+Run `00-vm-bootstrap.sh` again. It tests several resolvers and keeps the first one that can resolve `archive.ubuntu.com`.
 
 `sudo: unable to resolve host`:
 
-Check `/etc/hosts`. It should contain a `127.0.1.1` line for the VM hostname.
+Check `/etc/hosts`. It should contain a `127.0.1.1` entry for the VM hostname.
+
+`k3s: command not found`:
+
+Run `01-vm1-install-docker-k3s-server.sh` on VM1 or `03-vm2-install-k3s-agent.sh` on VM2.
 
 `kubectl` on VM2 tries `localhost:8080`:
 
-This is expected when VM2 has no kubeconfig. Use `kubectl` on VM1.
+Use `kubectl` on VM1. VM2 is a worker node and normally has no kubeconfig.
 
-Pods on VM2 show `ImagePullBackOff`:
+`ImagePullBackOff` on VM2:
 
 Run `04-vm1-copy-images-to-vm2.sh` from VM1 so VM2 has the local images in k3s containerd.
 
-Windows browser cannot open the frontend:
+`localhost:9999` does not work from Windows through SOCKS:
 
-Check that Firefox uses SOCKS5 `127.0.0.1:8888`, the SSH tunnel is still open, and the port-forward service listens on `172.16.100.2:9999`.
+Open `http://172.16.100.2:9999`. `localhost` is the Windows laptop in this setup.
 
 PVC is not `Bound`:
 
@@ -256,8 +284,4 @@ Check the default StorageClass:
 kubectl get storageclass
 ```
 
-If the OpenNebula lab does not provide dynamic provisioning, create a matching static PersistentVolume for the `postgres-data` claim.
-
-NetworkPolicy does not appear to block traffic:
-
-The objects can exist without enforcement if the installed CNI does not support NetworkPolicy. Note that caveat in the report instead of claiming enforcement that was not observed.
+If the lab environment does not provide dynamic provisioning, create a matching static PersistentVolume for the `postgres-data` claim.

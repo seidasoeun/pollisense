@@ -56,12 +56,6 @@ Main entry points:
 - [OpenNebula/k3s script index](scripts/opennebula-k3s/README.md)
 - [Demo runbook](docs/demo-runbook.md)
 - [Design decisions](docs/design-decisions.md)
-- [Final report outline](docs/final-report-outline.md)
-
-Other deployment notes:
-
-- [Single-server Minikube deployment](docs/deploy-single-server.md)
-- [Final OpenNebula deployment notes](docs/deploy-final-opennebula.md)
 
 ## Kubernetes Features Used
 
