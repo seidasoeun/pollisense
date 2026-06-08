@@ -24,27 +24,34 @@ Set `VM1_IP`, `VM2_IP`, `SSH_USER`, ports, and any VM-specific paths there. `.en
 Run on VM1:
 
 ```bash
-VM_HOSTNAME=pollisense-vm1 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
+sudo VM_HOSTNAME=pollisense-vm1 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
 bash scripts/opennebula-k3s/01-vm1-install-docker-k3s-server.sh
+bash scripts/opennebula-k3s/02-vm1-deploy-pollisense.sh
+```
+
+Get the VM1 k3s token:
+
+```bash
 sudo cat /var/lib/rancher/k3s/server/node-token
 ```
 
 Run on VM2:
 
 ```bash
-VM_HOSTNAME=pollisense-vm2 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
+sudo VM_HOSTNAME=pollisense-vm2 bash scripts/opennebula-k3s/00-vm-bootstrap.sh
 K3S_TOKEN='<token-from-vm1>' bash scripts/opennebula-k3s/03-vm2-install-k3s-agent.sh
 ```
 
 Run on VM1:
 
 ```bash
-bash scripts/opennebula-k3s/02-vm1-deploy-pollisense.sh
 bash scripts/opennebula-k3s/04-vm1-copy-images-to-vm2.sh
 bash scripts/opennebula-k3s/05-vm1-setup-portforward-services.sh
 bash scripts/opennebula-k3s/07-vm1-verify-deployment.sh
 bash scripts/opennebula-k3s/08-vm1-collect-evidence.sh
 ```
+
+This order avoids VM2 receiving pods before the local PolliSense images have been copied and imported there.
 
 After VM restart, run on VM1:
 
@@ -52,7 +59,7 @@ After VM restart, run on VM1:
 bash scripts/opennebula-k3s/06-vm1-after-reboot.sh
 ```
 
-Cleanup is guarded and should not be used during the demo unless you intend to remove the namespace:
+Cleanup is guarded and not recommend to use unless you intend to remove the namespace:
 
 ```bash
 CONFIRM_DELETE=true bash scripts/opennebula-k3s/09-vm1-clean-pollisense.sh
