@@ -13,12 +13,19 @@ spec:
       labels:
         app: pollisense-backend
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: pollisense-backend:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
             runAsUser: 10001
             runAsGroup: 10001
             runAsNonRoot: true
@@ -44,6 +51,13 @@ spec:
                   key: INGESTION_TOKEN
             - name: CORS_ORIGINS
               value: http://localhost:8081,http://localhost:5173
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

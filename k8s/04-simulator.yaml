@@ -13,12 +13,19 @@ spec:
       labels:
         app: pollisense-simulator
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: simulator
           image: pollisense-simulator:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
             runAsUser: 10001
             runAsGroup: 10001
             runAsNonRoot: true
@@ -32,3 +39,10 @@ spec:
                 secretKeyRef:
                   name: ingestion-secret
                   key: INGESTION_TOKEN
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi

@@ -1,3 +1,7 @@
+# PolliSense uses a default-deny NetworkPolicy model.
+# Allowed paths are frontend -> backend, simulator -> backend,
+# backend -> PostgreSQL, and DNS egress for service discovery.
+# Enforcement depends on the Kubernetes CNI plugin.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

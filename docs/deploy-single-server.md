@@ -42,6 +42,35 @@ Course concepts shown by this deployment:
 - The dashboard is accessed from the laptop through SSH local port forwarding or an SSH SOCKS proxy.
 - Replace placeholders such as `<SERVER_IP>`, `<SERVER_PRIVATE_IP>`, `<USER>`, and `<SSH_PORT>` with your real values.
 
+## Server-First Checklist
+
+Use this as the short path once the server exists:
+
+```bash
+git clone https://github.com/seidasoeun/pollisense.git
+cd pollisense
+# If you are validating a branch before merge:
+# git fetch origin
+# git switch polish/deployment-readiness
+
+docker compose config
+minikube status || minikube start --driver=docker
+kubectl get nodes -o wide
+kubectl get storageclass
+
+eval $(minikube docker-env)
+docker build -t pollisense-backend:latest ./pollisense-backend
+docker build -t pollisense-simulator:latest ./pollisense-simulator
+docker build -t pollisense-frontend:latest ./pollisense-frontend
+docker images | grep pollisense
+
+kubectl apply --dry-run=client -f k8s/
+kubectl apply -f k8s/
+bash scripts/check-k8s-demo.sh
+```
+
+Then port-forward the frontend and backend using the steps below.
+
 ## 1. Connect to the Server
 
 From PowerShell on your Windows laptop:
@@ -127,10 +156,16 @@ Start a single-node cluster with the Docker driver:
 minikube start --driver=docker
 ```
 
+If Minikube is already running, check it instead:
+
+```bash
+minikube status
+```
+
 Verify the node:
 
 ```bash
-kubectl get nodes
+kubectl get nodes -o wide
 ```
 
 Expected result: one node is shown with status `Ready`.
@@ -182,7 +217,15 @@ Verify:
 docker images | grep pollisense
 ```
 
+Expected result: all three local images are present with the `latest` tag. If they are missing after `kubectl apply`, the pods will usually show `ImagePullBackOff`.
+
 ## 8. Deploy Kubernetes Manifests
+
+Run a client-side manifest check first:
+
+```bash
+kubectl apply --dry-run=client -f k8s/
+```
 
 Apply all manifests:
 
@@ -190,10 +233,20 @@ Apply all manifests:
 kubectl apply -f k8s/
 ```
 
-Wait for pods:
+Wait for rollouts:
+
+```bash
+kubectl rollout status -n pollisense deployment/postgres
+kubectl rollout status -n pollisense deployment/pollisense-backend
+kubectl rollout status -n pollisense deployment/pollisense-frontend
+kubectl rollout status -n pollisense deployment/pollisense-simulator
+```
+
+Show the resources:
 
 ```bash
 kubectl get pods -n pollisense
+kubectl get all -n pollisense
 ```
 
 Check services:
@@ -213,6 +266,14 @@ Check NetworkPolicies:
 ```bash
 kubectl get networkpolicy -n pollisense
 ```
+
+You can also run:
+
+```bash
+bash scripts/check-k8s-demo.sh
+```
+
+This prints the key resources, waits for rollouts, and shows the backend/frontend verification commands without printing secret values.
 
 A healthy deployment should include:
 
@@ -403,6 +464,23 @@ During the demo, show:
 - Refreshing the dashboard still works.
 - Simulator logs show records being sent.
 - Backend health endpoint returns `UP`.
+
+Save these terminal outputs for the final report/proposal evidence:
+
+```bash
+kubectl get nodes -o wide
+kubectl get all -n pollisense
+kubectl get pvc -n pollisense
+kubectl get secrets -n pollisense
+kubectl get networkpolicy -n pollisense
+kubectl logs -n pollisense deployment/pollisense-simulator --tail=50
+curl http://127.0.0.1:8080/actuator/health
+curl http://127.0.0.1:8080/api/records
+curl http://127.0.0.1:8080/api/alerts
+curl http://127.0.0.1:8080/api/summary
+```
+
+Take screenshots of the dashboard after records appear, the OpenNebula VM view, and the Kubernetes resource overview.
 
 ## 13. Persistence Test
 
@@ -636,3 +714,4 @@ curl http://127.0.0.1:8080/api/summary
 
 Minikube's active CNI may not enforce NetworkPolicy. The manifests still define the intended security boundaries. Note this limitation in the report if traffic is not blocked during the local Minikube test.
 
+If you need enforced NetworkPolicy for the demo, start Minikube with a CNI that supports it, or use a Kubernetes setup such as k3s with a compatible network plugin. Do not claim blocked traffic unless the netcat checks actually fail as expected.

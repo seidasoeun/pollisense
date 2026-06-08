@@ -294,6 +294,7 @@ cd pollisense
 Apply the manifests:
 
 ```bash
+kubectl apply --dry-run=client -f k8s/
 kubectl apply -f k8s/
 ```
 
@@ -347,6 +348,14 @@ kubectl rollout status -n pollisense deployment/pollisense-backend
 kubectl rollout status -n pollisense deployment/pollisense-frontend
 kubectl rollout status -n pollisense deployment/pollisense-simulator
 ```
+
+For a compact verification pass, run:
+
+```bash
+bash scripts/check-k8s-demo.sh
+```
+
+This helper checks the namespace, pods, services, PVC, NetworkPolicies, and rollouts. It also prints the backend and frontend commands to run next.
 
 ## Storage
 
@@ -613,6 +622,36 @@ kubectl scale deployment pollisense-backend -n pollisense --replicas=1
 
 Keep scaling optional. The main demo should focus on functional flow, persistence, security resources, and dashboard behavior.
 
+## Evidence to Save Before Writing
+
+Save command output from the actual OpenNebula VM or Kubernetes host:
+
+```bash
+git status
+git log --oneline -5
+docker images | grep pollisense
+kubectl get nodes -o wide
+kubectl get all -n pollisense
+kubectl get pvc -n pollisense
+kubectl get secrets -n pollisense
+kubectl get networkpolicy -n pollisense
+kubectl logs -n pollisense deployment/pollisense-simulator --tail=50
+curl http://127.0.0.1:8080/actuator/health
+curl http://127.0.0.1:8080/api/records
+curl http://127.0.0.1:8080/api/alerts
+curl http://127.0.0.1:8080/api/summary
+```
+
+Take screenshots of:
+
+- OpenNebula VM list or VM details.
+- `kubectl get nodes -o wide`.
+- `kubectl get all -n pollisense`.
+- The dashboard after records and alerts appear.
+- The persistence test before and after PostgreSQL pod recreation.
+
+Only update the final report/proposal after these checks are captured. If NetworkPolicy is not enforced by the selected CNI, state that clearly and show the manifests as the intended policy.
+
 ## Report Explanation Text
 
 You can adapt this text in the final report:
@@ -756,4 +795,3 @@ Common causes:
 - PVC is pending.
 - Secret values do not match the backend environment.
 - NetworkPolicy or CNI behavior blocks backend-to-PostgreSQL traffic.
-
